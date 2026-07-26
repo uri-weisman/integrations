@@ -117,8 +117,6 @@ processors:
         host.id and device_caption to host.name with deduplication.
       if: ctx.axonius?.identity?.associated_devices instanceof List
       source: |-
-        def ids = new ArrayList();
-        def names = new ArrayList();
         void collect(List target, def value) {
           if (value == null) return;
           if (value instanceof List) {
@@ -129,6 +127,8 @@ processors:
             target.add(value.toString());
           }
         }
+        def ids = new ArrayList();
+        def names = new ArrayList();
         for (def device : ctx.axonius.identity.associated_devices) {
           if (!(device instanceof Map)) continue;
           collect(ids, device.device_id);
