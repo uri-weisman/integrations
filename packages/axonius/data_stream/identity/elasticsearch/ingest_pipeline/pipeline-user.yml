@@ -19,8 +19,8 @@ processors:
       description: >-
         Copies associated_devices fields (device_id, device_model, device_serial) to ECS device.* fields
         with deduplication, normalises device_preferred_mac_address (`:` -> `-`, upper-cased) in place,
-        and copies associated_employees.username and associated_groups.display_name to related.user
-        with deduplication.
+        copies associated_employees.username and associated_groups.display_name to related.user
+        with deduplication, and copies associated_groups.display_name to user.group.name with deduplication.
       source: |-
         void appendUnique(Map container, String field, def value) {
           if (value == null) return;
@@ -82,6 +82,9 @@ processors:
             if (!(grp instanceof Map)) continue;
             if (grp.display_name != null) {
               appendUnique(ctx.related, 'user', grp.display_name.toString());
+              if (ctx.user == null) ctx.user = [:];
+              if (ctx.user.group == null) ctx.user.group = [:];
+              appendUnique(ctx.user.group, 'name', grp.display_name.toString());
             }
           }
         }
@@ -89,6 +92,119 @@ processors:
         - append:
             field: error.message
             value: 'Processor {{{_ingest.on_failure_processor_type}}} with tag {{{_ingest.on_failure_processor_tag}}} in pipeline {{{_ingest.on_failure_pipeline}}} failed with message: {{{_ingest.on_failure_message}}}'
+  - set:
+      field: user.id
+      tag: set_user_id_from_identity_id
+      copy_from: axonius.identity.id
+      ignore_empty_value: true
+  - set:
+      field: user.id
+      tag: set_user_id_from_identity_user_remote_id
+      copy_from: axonius.identity.user_remote_id
+      ignore_empty_value: true
+      if: ctx.user?.id == null
+  - set:
+      field: user.id
+      tag: set_user_id_from_identity_internal_axon_id
+      copy_from: axonius.identity.internal_axon_id
+      ignore_empty_value: true
+      if: ctx.user?.id == null
+  - script:
+      tag: script_set_user_entity_relationships_owns
+      lang: painless
+      description: >-
+        Builds user.entity.relationships.owns from associated_devices, mapping device_id to
+        host.id and device_caption to host.name with deduplication.
+      if: ctx.axonius?.identity?.associated_devices instanceof List
+      source: |-
+        def ids = new ArrayList();
+        def names = new ArrayList();
+        void collect(List target, def value) {
+          if (value == null) return;
+          if (value instanceof List) {
+            for (def v : value) {
+              if (v != null && !target.contains(v.toString())) target.add(v.toString());
+            }
+          } else if (!target.contains(value.toString())) {
+            target.add(value.toString());
+          }
+        }
+        for (def device : ctx.axonius.identity.associated_devices) {
+          if (!(device instanceof Map)) continue;
+          collect(ids, device.device_id);
+          collect(names, device.device_caption);
+        }
+        def host = new HashMap();
+        if (!ids.isEmpty()) host.put('id', ids);
+        if (!names.isEmpty()) host.put('name', names);
+        if (!host.isEmpty()) {
+          if (ctx.user == null) ctx.user = new HashMap();
+          if (ctx.user.entity == null) ctx.user.entity = new HashMap();
+          if (ctx.user.entity.relationships == null) ctx.user.entity.relationships = new HashMap();
+          ctx.user.entity.relationships.put('owns', ['host': host]);
+        }
+      on_failure:
+        - append:
+            field: error.message
+            value: 'Processor {{{_ingest.on_failure_processor_type}}} with tag {{{_ingest.on_failure_processor_tag}}} in pipeline {{{_ingest.on_failure_pipeline}}} failed with message: {{{_ingest.on_failure_message}}}'
+  - script:
+      tag: script_set_user_entity_relationships_administers
+      lang: painless
+      description: >-
+        Builds user.entity.relationships.administers from nested_applications where
+        has_administrative_permissions is true, mapping name to service.name and value to service.id.
+      if: ctx.axonius?.identity?.nested_applications instanceof List
+      source: |-
+        def ids = new ArrayList();
+        def names = new ArrayList();
+        for (def app : ctx.axonius.identity.nested_applications) {
+          if (!(app instanceof Map)) continue;
+          if (app.has_administrative_permissions != true) continue;
+          if (app.value != null && !ids.contains(app.value.toString())) ids.add(app.value.toString());
+          if (app.name != null && !names.contains(app.name.toString())) names.add(app.name.toString());
+        }
+        def service = new HashMap();
+        if (!ids.isEmpty()) service.put('id', ids);
+        if (!names.isEmpty()) service.put('name', names);
+        if (!service.isEmpty()) {
+          if (ctx.user == null) ctx.user = new HashMap();
+          if (ctx.user.entity == null) ctx.user.entity = new HashMap();
+          if (ctx.user.entity.relationships == null) ctx.user.entity.relationships = new HashMap();
+          ctx.user.entity.relationships.put('administers', ['service': service]);
+        }
+      on_failure:
+        - append:
+            field: error.message
+            value: 'Processor {{{_ingest.on_failure_processor_type}}} with tag {{{_ingest.on_failure_processor_tag}}} in pipeline {{{_ingest.on_failure_pipeline}}} failed with message: {{{_ingest.on_failure_message}}}'
+  - script:
+      tag: script_set_user_entity_attributes_permissions
+      lang: painless
+      description: Extracts user_permissions[].name into user.entity.attributes.permissions with deduplication.
+      if: ctx.axonius?.identity?.user_permissions instanceof List
+      source: |-
+        def perms = new ArrayList();
+        for (def p : ctx.axonius.identity.user_permissions) {
+          if (!(p instanceof Map)) continue;
+          if (p.name != null && p.name != '' && !perms.contains(p.name.toString())) {
+            perms.add(p.name.toString());
+          }
+        }
+        if (!perms.isEmpty()) {
+          if (ctx.user == null) ctx.user = new HashMap();
+          if (ctx.user.entity == null) ctx.user.entity = new HashMap();
+          if (ctx.user.entity.attributes == null) ctx.user.entity.attributes = new HashMap();
+          ctx.user.entity.attributes.put('permissions', perms);
+        }
+      on_failure:
+        - append:
+            field: error.message
+            value: 'Processor {{{_ingest.on_failure_processor_type}}} with tag {{{_ingest.on_failure_processor_tag}}} in pipeline {{{_ingest.on_failure_pipeline}}} failed with message: {{{_ingest.on_failure_message}}}'
+  - append:
+      field: user.entity.relationships.depends_on.service.name
+      tag: append_provider_name_into_user_entity_relationships_depends_on
+      value: '{{{axonius.identity.provider_name}}}'
+      allow_duplicates: false
+      if: ctx.axonius?.identity?.provider_name != null
   - set:
       field: cloud.service.name
       tag: set_cloud_service_name_from_identity_aws_iam_identity_type
@@ -552,6 +668,16 @@ processors:
         - append:
             field: error.message
             value: 'Processor {{{_ingest.on_failure_processor_type}}} with tag {{{_ingest.on_failure_processor_tag}}} in pipeline {{{_ingest.on_failure_pipeline}}} failed with message: {{{_ingest.on_failure_message}}}'
+  - set:
+      field: user.entity.lifecycle.last_activity
+      tag: set_user_entity_lifecycle_last_activity_from_last_logon
+      copy_from: axonius.identity.last_logon
+      ignore_empty_value: true
+  - set:
+      field: user.entity.attributes.mfa_enabled
+      tag: set_user_entity_attributes_mfa_enabled_from_is_mfa_enrolled
+      copy_from: axonius.identity.is_mfa_enrolled
+      ignore_empty_value: true
   - append:
       field: related.user
       tag: append_identity_last_name_into_related_user

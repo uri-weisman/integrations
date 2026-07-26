@@ -137,7 +137,7 @@
         "created": "2024-06-28T08:49:28.000Z",
         "dataset": "axonius.identity",
         "ingested": "2026-06-03T07:48:12Z",
-        "kind": "event",
+        "kind": "asset",
         "type": [
             "info"
         ]
@@ -158,6 +158,22 @@
     "user": {
         "domain": "demo.local",
         "email": "helen.jordan@demo.local",
+        "entity": {
+            "attributes": {
+                "permissions": [
+                    "OnlineMeetings.ReadWrite"
+                ]
+            },
+            "lifecycle": {
+                "last_activity": "2025-11-30T18:50:39.000Z"
+            }
+        },
+        "group": {
+            "name": [
+                "developers-group"
+            ]
+        },
+        "id": "c8103abe-eda9-472b-894a-6260bb2ba8cc",
         "name": "helen.jordan@demo.local"
     }
 }

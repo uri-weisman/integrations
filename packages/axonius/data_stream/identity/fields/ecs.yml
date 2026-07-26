@@ -3,3 +3,20 @@
   external: ecs
   type: constant_keyword
   value: Axonius
+# Entity fields that are currently defined in ECS 9.4.0 but not included in dynamic templates:
+- name: user.entity.attributes.mfa_enabled
+  external: ecs
+- name: user.entity.attributes.permissions
+  external: ecs
+- name: user.entity.lifecycle.last_activity
+  external: ecs
+- name: user.entity.relationships.administers.service.id
+  external: ecs
+- name: user.entity.relationships.administers.service.name
+  external: ecs
+- name: user.entity.relationships.depends_on.service.name
+  external: ecs
+- name: user.entity.relationships.owns.host.id
+  external: ecs
+- name: user.entity.relationships.owns.host.name
+  external: ecs

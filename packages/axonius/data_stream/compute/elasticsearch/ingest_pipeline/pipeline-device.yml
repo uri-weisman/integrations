@@ -799,6 +799,11 @@ processors:
             field: error.message
             value: 'Processor {{{_ingest.on_failure_processor_type}}} with tag {{{_ingest.on_failure_processor_tag}}} in pipeline {{{_ingest.on_failure_pipeline}}} failed with message: {{{_ingest.on_failure_message}}}'
       if: ctx.axonius?.compute?.is_managed != ''
+  - set:
+      field: host.entity.attributes.managed
+      tag: set_host_entity_attributes_managed_from_compute_is_managed
+      copy_from: axonius.compute.is_managed
+      ignore_empty_value: true
   - convert:
       field: axonius.compute.is_network_infra_device
       tag: convert_is_network_infra_device_to_boolean

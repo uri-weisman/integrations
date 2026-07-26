@@ -89,7 +89,7 @@
         ],
         "dataset": "axonius.compute",
         "ingested": "2026-06-03T07:45:10Z",
-        "kind": "event",
+        "kind": "asset",
         "type": [
             "info"
         ]

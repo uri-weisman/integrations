@@ -2496,6 +2496,14 @@ The `identity` data stream provides identity asset logs from axonius.
 | input.type | Type of filebeat input. | keyword |
 | labels.is_transform_source | Distinguishes between documents that are a source for a transform and documents that are an output of a transform, to facilitate easier filtering. | constant_keyword |
 | observer.vendor | Vendor name of the observer. | constant_keyword |
+| user.entity.attributes.mfa_enabled | Indicates whether multi-factor authentication is enabled for this entity. Typically applicable to User entities. | boolean |
+| user.entity.attributes.permissions | Action-level permissions associated with this entity (not roles or groups). Typically applicable to User, Host, and Service entities. | keyword |
+| user.entity.lifecycle.last_activity | Timestamp of the most recent action performed by or attributed to this entity (active use). Distinct from `entity.last_seen_timestamp`, which records when the entity was last observed in data; `last_activity` implies the entity was active, not only seen. Typically applicable to User, Host, and Service entities. | date |
+| user.entity.relationships.administers.service.id | Referenced service ids. | keyword |
+| user.entity.relationships.administers.service.name | Referenced service names. | keyword |
+| user.entity.relationships.depends_on.service.name | Referenced service names. | keyword |
+| user.entity.relationships.owns.host.id | Referenced host ids. | keyword |
+| user.entity.relationships.owns.host.name | Referenced host names. | keyword |
 
 
 An example event for `identity` looks as following:
@@ -2640,7 +2648,7 @@ An example event for `identity` looks as following:
         "created": "2024-06-28T08:49:28.000Z",
         "dataset": "axonius.identity",
         "ingested": "2026-06-03T07:48:12Z",
-        "kind": "event",
+        "kind": "asset",
         "type": [
             "info"
         ]
@@ -2661,6 +2669,22 @@ An example event for `identity` looks as following:
     "user": {
         "domain": "demo.local",
         "email": "helen.jordan@demo.local",
+        "entity": {
+            "attributes": {
+                "permissions": [
+                    "OnlineMeetings.ReadWrite"
+                ]
+            },
+            "lifecycle": {
+                "last_activity": "2025-11-30T18:50:39.000Z"
+            }
+        },
+        "group": {
+            "name": [
+                "developers-group"
+            ]
+        },
+        "id": "c8103abe-eda9-472b-894a-6260bb2ba8cc",
         "name": "helen.jordan@demo.local"
     }
 }
@@ -3126,6 +3150,7 @@ The `compute` data stream provides compute asset logs from axonius.
 | data_stream.type | An overarching type for the data stream. Currently allowed values are "logs" and "metrics". We expect to also add "traces" and "synthetics" in the near future. | constant_keyword |
 | event.dataset | Name of the dataset. If an event source publishes more than one type of log or events (e.g. access log, error log), the dataset is used to specify which one the event comes from. It's recommended but not required to start the dataset name with the module name, followed by a dot, then the dataset name. | constant_keyword |
 | event.module | Name of the module this data is coming from. If your monitoring agent supports the concept of modules or plugins to process events of a given source (e.g. Apache logs), `event.module` should contain the name of this module. | constant_keyword |
+| host.entity.attributes.managed | Indicates whether the entity is managed by an external administration or control system. Typically applicable to Host and Service entities. | boolean |
 | input.type | Type of filebeat input. | keyword |
 | labels.is_transform_source | Indicates whether a compute event is in the raw source data stream, or in the latest destination index. | constant_keyword |
 | observer.vendor | Vendor name of the observer. | constant_keyword |
@@ -3225,7 +3250,7 @@ An example event for `compute` looks as following:
         ],
         "dataset": "axonius.compute",
         "ingested": "2026-06-03T07:45:10Z",
-        "kind": "event",
+        "kind": "asset",
         "type": [
             "info"
         ]
@@ -3700,6 +3725,7 @@ The `application` data stream provides application asset logs from axonius.
 | data_stream.type | An overarching type for the data stream. Currently allowed values are "logs" and "metrics". We expect to also add "traces" and "synthetics" in the near future. | constant_keyword |
 | event.dataset | Name of the dataset. If an event source publishes more than one type of log or events (e.g. access log, error log), the dataset is used to specify which one the event comes from. It's recommended but not required to start the dataset name with the module name, followed by a dot, then the dataset name. | constant_keyword |
 | event.module | Name of the module this data is coming from. If your monitoring agent supports the concept of modules or plugins to process events of a given source (e.g. Apache logs), `event.module` should contain the name of this module. | constant_keyword |
+| host.entity.attributes.managed | Indicates whether the entity is managed by an external administration or control system. Typically applicable to Host and Service entities. | boolean |
 | input.type | Type of filebeat input. | keyword |
 | labels.is_transform_source | Indicates whether a compute event is in the raw source data stream, or in the latest destination index. | constant_keyword |
 | observer.vendor | Vendor name of the observer. | constant_keyword |

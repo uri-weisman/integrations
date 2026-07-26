@@ -48,7 +48,7 @@ processors:
   - set:
       tag: set_event_kind
       field: event.kind
-      value: event
+      value: asset
   - append:
       field: event.category
       value: host
