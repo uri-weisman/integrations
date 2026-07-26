@@ -3,7 +3,7 @@
   changes:
     - description: Map entity ECS fields for the `identity` (user) and `compute` (host) data streams to support Entity Store workflows, add `user.id`/`user.group` mappings, and set `event.kind` to `asset` for asset data streams. Bump ECS dependency to 9.4.0.
       type: enhancement
-      link: https://github.com/elastic/integrations/pull/20412
+      link: https://github.com/uri-weisman/integrations/pull/2
 - version: "0.2.0"
   changes:
     - description: Publish Agentless to Elastic Managed integrations name change.
